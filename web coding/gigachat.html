@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyCamp: Полный курс по Python</title>
+    <style>
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-panel: #252526;
+            --text-light: #d4d4d4;
+            --text-muted: #9cdcfe;
+            --accent: #007acc;
+            --success: #4ec9b0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-dark); color: var(--text-light);
+            display: grid; grid-template-columns: 300px 1fr; height: 100vh;
+        }
+        /* Левая панель — навигация */
+        #sidebar {
+            background: var(--bg-panel); border-right: 1px solid #333;
+            overflow-y: auto; padding: 20px 0;
+        }
+        .module-title {
+            padding: 0 20px; font-weight: bold; color: var(--accent); 
+            font-size: 14px; text-transform: uppercase; margin: 20px 0 10px;
+        }
+        .lesson-list { list-style: none; padding: 0; margin: 0; }
+        .lesson-list li {
+            padding: 10px 20px; cursor: pointer; font-size: 14px;
+            border-left: 3px solid transparent;
+        }
+        .lesson-list li:hover, .lesson-list li.active {
+            background: var(--bg-dark); border-left: 3px solid var(--accent);
+        }
+        .lesson-list li.done { color: var(--success); }
+        
+        /* Правая панель — контент */
+        #main-content {
+            display: grid; grid-template-rows: auto 1fr; background: #1e1e1e;
+        }
+        #lesson-header {
+            padding: 20px; border-bottom: 1px solid #333;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #lesson-title { font-size: 24px; margin: 0; }
+        #lesson-description { color: var(--text-muted); margin: 10px 0 0; }
+        #controls { display: flex; gap: 10px; }
+        button {
+            background: var(--accent); color: white; border: none; 
+            padding: 8px 16px; cursor: pointer; border-radius: 4px;
+        }
+        button:disabled { background: #3a3a3c; cursor: not-allowed; }
+        
+        /* Зона редактора и вывода */
+        .editor-container {
+            display: grid; grid-template-columns: 1fr 1fr; height: calc(100vh - 120px);
+        }
+        textarea, #output {
+            width: 100%; height: 100%; border: none; font-family: 'Consolas', monospace;
+            font-size: 14px; background: #2d2d2d; color: #d4d4d4; padding: 15px;
+            resize: none;
+        }
+        textarea:focus, #output:focus { outline: none; }
+        #output { background: #1e1e1e; overflow-y: auto; white-space: pre-wrap; }
+        
+        /* Модальное окно */
+        .modal {
+            display: none; position: fixed; z-index: 100; left: 0; top: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--bg-dark); padding: 30px; border-radius: 8px;
+            width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto;
+            position: relative;
+        }
+        .close { position: absolute; top: 15px; right: 20px; font-size: 28px;
+                 color: #999; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<!-- Левая навигация -->
+<nav id="sidebar">
+    <div class="module-title">Модуль 1: Основы</div>
+    <ul class="lesson-list" id="lessons-list">
+        <!-- Уроки будут сгенерированы скриптом -->
+    </ul>
+</nav>
+
+<!-- Основной контент -->
+<main id="main-content">
+    <header id="lesson-header">
+        <div>
+            <h1 id="lesson-title">Выберите урок</h1>
+            <p id="lesson-description"></p>
+        </div>
+        <div id="controls">
+            <button id="run-btn">▶ Выполнить код</button>
+            <button id="check-btn">✓ Проверить решение</button>
+        </div>
+    </header>
+    
+    <div class="editor-container">
+        <textarea id="code-editor">print("Привет, PyCamp!")</textarea>
+        <pre id="output">Вывод программы появится здесь...</pre>
+    </div>
+</main>
+
+<!-- Модальное окно с теорией -->
+<div class="modal" id="theory-modal">
+    <div class="modal-content">
+        <span class="close" id="close-modal">&times;</span>
+        <h2 id="modal-title"></h2>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<script>
+/* === БАЗА ДАННЫХ КУРСА === */
+const lessons = [
+    {
+        id: 0, title: "Привет, мир!", description: "Первая программа на Python", 
+        code: 'print("Привет, мир!")', 
+        theory: "<h3>Функция print()</h3><p>Выводит данные на экран. В Python 3 скобки обязательны.</p>", 
+        solution: 'print("Привет, мир!")', task: 'Выведите на экран фразу "Привет, мир!"'
+    },
+    {
+        id: 1, title: "Переменные и типы", description: "Как хранить данные", 
+        code: 'name = "Алексей"\nage = 30\nprint(name, "исполнилось", age, "лет")', 
+        theory: "<h3>Переменные</h3><p>В Python не нужно объявлять тип переменной. Он определяется автоматически.</p><ul><li><b>str</b> — строка</li><li><b>int</b> — целое число</li><li><b>float</b> — число с точкой</li><li><b>bool</b> — булево значение (True/False)</li></ul>", 
+        solution: 'name = "Алексей"\nage = 30\nprint(name, "исполнилось", age, "лет")', task: 'Создайте переменную city со значением "Москва" и выведите ее на экран.'
+    },
+    {
+        id: 2, title: "Условный оператор if", description: "Принятие решений в коде", 
+        code: 'age = 20\nif age >= 18:\n    print("Доступ разрешен")\nelse:\n    print("Доступ запрещен")', 
+        theory: "<h3>if / else</h3><p>Позволяет выполнять код при выполнении условия. Отступы (4 пробела) в Python критически важны — они определяют блоки кода.</p>", 
+        solution: 'age = 16\nif age >= 18:\n    print("Доступ разрешен")\nelse:\n    print("Доступ запрещен")', task: 'Если переменная score больше 50, выведите "Зачет", иначе — "Незачет".'
+    },
+    {
+        id: 3, title: "Цикл for", description: "Повторение действий", 
+        code: 'for i in range(5):\n    print("Итерация", i)', 
+        theory: "<h3>Цикл for и range()</h3><p><b>for</b> перебирает элементы. <b>range(5)</b> создает последовательность от 0 до 4.</p>", 
+        solution: 'for i in range(3):\n    print("Привет", i)', task: 'С помощью цикла выведите числа от 1 до 5.'
+    },
+    {
+        id: 4, title: "Списки (Lists)", description: "Хранение наборов данных", 
+        code: 'fruits = ["яблоко", "банан", "груша"]\nprint(fruits[0]) # Индексация с 0\nprint(len(fruits)) # Длина списка', 
+        theory: "<h3>Списки</h3><p>Изменяемая коллекция. Доступ к элементам по индексу. <b>len()</b> возвращает длину.</p>", 
+        solution: 'numbers = [10, 20, 30, 40]\nprint(numbers[2])', task: 'Создайте список из трех планет и выведите вторую планету на экран.'
+    }
+];
+
+/* === СОСТОЯНИЕ ПРИЛОЖЕНИЯ === */
+let currentLesson = null;
+let progress = JSON.parse(localStorage.getItem('pypi_progress') || '{}');
+
+/* === ОТОБРАЖЕНИЕ УРОКОВ === */
+function renderLessons() {
+    const list = document.getElementById('lessons-list');
+    list.innerHTML = '';
+    lessons.forEach(lesson => {
+        const li = document.createElement('li');
+        li.textContent = lesson.title;
+        li.dataset.id = lesson.id;
+        if (progress[lesson.id]) li.classList.add('done');
+        if (currentLesson && currentLesson.id === lesson.id) li.classList.add('active');
+        li.addEventListener('click', () => loadLesson(lesson.id));
+        list.appendChild(li);
+    });
+}
+
+/* === ЗАГРУЗКА УРОКА === */
+function loadLesson(id) {
+    currentLesson = lessons[id];
+    document.getElementById('lesson-title').textContent = currentLesson.title;
+    document.getElementById('lesson-description').textContent = currentLesson.description;
+    document.getElementById('code-editor').value = currentLesson.code;
+    document.getElementById('output').textContent = 'Вывод программы появится здесь...';
+    
+    renderLessons();
+    localStorage.setItem('pypi_last_lesson', id);
+}
+
+/* === ИНТЕРПРЕТАТОР PYTHON (на базе Brython) === */
+function runCode() {
+    const code = document.getElementById('code-editor').value;
+    const output = document.getElementById('output');
+    output.textContent = "Выполнение...";
+    
+    // Используем встроенный в браузер интерпретатор Brython
+    if (typeof __BRYTHON__ !== 'undefined') {
+        __BRYTHON__.python_executing = true;
+        __BRYTHON__.brython(1);
+        
+        // Перехват вывода
+        const saved_print = print;
+        let result = "";
+        print = function(...args) {
+            result += args.join(" ") + "\n";
+        };
+        
+        try {
+            __BRYTHON__.exec(code, __BRYTHON__.__python_scope);
+            output.textContent = result || "Код выполнен без вывода.";
+        } catch(e) {
+            output.textContent = "Ошибка:\n" + e;
+        } finally {
+            print = saved_print;
+        }
+    } else {
+        output.textContent = "Интерпретатор Python (Brython) не загрузился.";
+    }
+}
+
+/* === ПРОВЕРКА РЕШЕНИЯ === */
+function checkSolution() {
+    const userCode = document.getElementById('code-editor').value.trim();
+    const solution = currentLesson.solution.trim();
+    
+    // Простейшая нормализация: убираем лишние пробелы в строках
+    const normalize = s => s.split('\n').map(l => l.trim()).join('\n').replace(/"/g, "'");
+    
+    if (normalize(userCode) === normalize(solution)) {
+        if (!progress[currentLesson.id]) {
+            progress[currentLesson.id] = true;
+            localStorage.setItem('pypi_progress', JSON.stringify(progress));
+            renderLessons();
+        }
+        document.getElementById('output').textContent = "✅ Отлично! Решение верное.";
+    } else {
+        document.getElementById('output').textContent = "❌ Неверно. Попробуйте еще раз.\n\nОжидаемый результат (пример):\n" + solution;
+    }
+}
+
+/* === МОДАЛЬНОЕ ОКНО С ТЕОРИЕЙ === */
+function showTheory() {
+    document.getElementById('modal-title').textContent = currentLesson.title;
+    document.getElementById('modal-body').innerHTML = currentLesson.theory;
+    document.getElementById('theory-modal').style.display = 'flex';
+}
+document.getElementById('close-modal').onclick = () => document.getElementById('theory-modal').style.display = 'none';
+window.onclick = (e) => { if (e.target.id === 'theory-modal') document.getElementById('theory-modal').style.display = 'none'; };
+
+/* === НАСТРОЙКА ИНТЕРФЕЙСА === */
+document.getElementById('run-btn').addEventListener('click', runCode);
+document.getElementById('check-btn').addEventListener('click', checkSolution);
+
+// Добавляем кнопку теории в хедер
+const theoryBtn = document.createElement('button');
+theoryBtn.textContent = '📚 Теория';
+theoryBtn.onclick = showTheory;
+document.getElementById('controls').prepend(theoryBtn);
+
+/* === ИНИЦИАЛИЗАЦИЯ === */
+// Загружаем Brython (интерпретатор Python) динамически
+const script = document.createElement('script');
+script.src = 'https://cdn.jsdelivr.net/npm/brython@3.11.1/brython.min.js';
+script.onload = function() {
+    const lastLesson = localStorage.getItem('pypi_last_lesson') || 0;
+    loadLesson(parseInt(lastLesson));
+    // Инициализация Brython
+    if (typeof brython === 'function') {
+        brython({debug: 0, static_stdlib_import: true});
+    }
+};
+document.head.appendChild(script);
+</script>
+
+</body>
+</html>
